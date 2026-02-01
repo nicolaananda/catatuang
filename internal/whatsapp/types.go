@@ -27,7 +27,23 @@ func (m *IncomingMessage) GetMessageID() string {
 
 // GetFrom returns the sender ID (phone number with WhatsApp suffix)
 func (m *IncomingMessage) GetFrom() string {
-	// Ensure phone number has @s.whatsapp.net suffix for sending messages
+	// For LID users, GOWA sends:
+	// - sender_id: "88270922903758" (LID)
+	// - from: "6281617985577@s.whatsapp.net" (actual phone)
+	// We need to use the 'from' field to get the real phone number
+
+	// First, try to extract phone from 'from' field if it contains @s.whatsapp.net
+	if strings.Contains(m.From, "@s.whatsapp.net") {
+		// Extract phone number before @s.whatsapp.net
+		parts := strings.Split(m.From, "@")
+		if len(parts) > 0 {
+			phone := parts[0]
+			// Return with @s.whatsapp.net suffix
+			return phone + "@s.whatsapp.net"
+		}
+	}
+
+	// Fallback to sender_id
 	phone := m.SenderID
 
 	// Skip if empty
@@ -35,7 +51,7 @@ func (m *IncomingMessage) GetFrom() string {
 		return ""
 	}
 
-	// If already has @ suffix, return as is
+	// If already has @ suffix
 	if strings.Contains(phone, "@") {
 		// For LID format (e.g., "88270922903758@lid"), convert to standard format
 		if strings.HasSuffix(phone, "@lid") {
