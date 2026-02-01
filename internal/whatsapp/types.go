@@ -2,20 +2,44 @@ package whatsapp
 
 // IncomingMessage represents a webhook message from GOWA
 type IncomingMessage struct {
-	MessageID string `json:"message_id"`
-	From      string `json:"from"`
-	Text      string `json:"text,omitempty"`
-	MediaURL  string `json:"media_url,omitempty"`
-	MediaType string `json:"media_type,omitempty"`
-	Timestamp int64  `json:"timestamp"`
+	ChatID    string      `json:"chat_id"`
+	From      string      `json:"from"`
+	Message   MessageData `json:"message"`
+	Pushname  string      `json:"pushname"`
+	SenderID  string      `json:"sender_id"`
+	Timestamp string      `json:"timestamp"`
+}
+
+// MessageData represents the nested message object
+type MessageData struct {
+	Text          string `json:"text"`
+	ID            string `json:"id"`
+	RepliedID     string `json:"replied_id,omitempty"`
+	QuotedMessage string `json:"quoted_message,omitempty"`
+}
+
+// GetMessageID returns the message ID
+func (m *IncomingMessage) GetMessageID() string {
+	return m.Message.ID
+}
+
+// GetFrom returns the sender ID (phone number)
+func (m *IncomingMessage) GetFrom() string {
+	return m.SenderID
+}
+
+// GetText returns the message text
+func (m *IncomingMessage) GetText() string {
+	return m.Message.Text
 }
 
 // IsImage checks if message contains an image
 func (m *IncomingMessage) IsImage() bool {
-	return m.MediaType == "image" && m.MediaURL != ""
+	// GOWA sends media in different format, will handle later
+	return false
 }
 
 // IsText checks if message is text
 func (m *IncomingMessage) IsText() bool {
-	return m.Text != "" && m.MediaURL == ""
+	return m.Message.Text != ""
 }

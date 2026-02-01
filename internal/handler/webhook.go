@@ -128,38 +128,38 @@ func (h *WebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (h *WebhookHandler) processMessage(ctx context.Context, msg *whatsapp.IncomingMessage) {
 	// Check deduplication
-	processed, err := h.dedupRepo.IsProcessed(ctx, msg.MessageID)
+	processed, err := h.dedupRepo.IsProcessed(ctx, msg.GetMessageID())
 	if err != nil {
 		log.Printf("Failed to check dedup: %v", err)
 		return
 	}
 	if processed {
-		log.Printf("Message already processed: %s", msg.MessageID)
+		log.Printf("Message already processed: %s", msg.GetMessageID())
 		return
 	}
 
 	// Mark as processed
-	if err := h.dedupRepo.MarkProcessed(ctx, msg.MessageID); err != nil {
+	if err := h.dedupRepo.MarkProcessed(ctx, msg.GetMessageID()); err != nil {
 		log.Printf("Failed to mark processed: %v", err)
 		return
 	}
 
 	// Get or create user
-	user, isNew, err := h.userService.GetOrCreateUser(ctx, msg.From)
+	user, isNew, err := h.userService.GetOrCreateUser(ctx, msg.GetFrom())
 	if err != nil {
 		log.Printf("Failed to get/create user: %v", err)
-		h.sendMessage(msg.From, "Maaf, terjadi kesalahan sistem 😔")
+		h.sendMessage(msg.GetFrom(), "Maaf, terjadi kesalahan sistem 😔")
 		return
 	}
 
 	// Check if user is blocked
 	if user.IsBlocked {
-		h.sendMessage(msg.From, "Akun Anda diblokir. Hubungi admin untuk informasi lebih lanjut.")
+		h.sendMessage(msg.GetFrom(), "Akun Anda diblokir. Hubungi admin untuk informasi lebih lanjut.")
 		return
 	}
 
 	// Handle admin commands
-	if msg.From == h.cfg.AdminMSISDN {
+	if msg.GetFrom() == h.cfg.AdminMSISDN {
 		if h.handleAdminCommand(ctx, msg) {
 			return
 		}
@@ -201,29 +201,29 @@ Pilih paket:
 
 Ketik *1* atau *2* untuk memilih.`
 
-	h.sendMessage(msg.From, onboardingMsg)
+	h.sendMessage(msg.GetFrom(), onboardingMsg)
 }
 
 func (h *WebhookHandler) handlePlanSelection(ctx context.Context, user *domain.User, msg *whatsapp.IncomingMessage) {
-	text := strings.TrimSpace(msg.Text)
+	text := strings.TrimSpace(msg.GetText())
 
 	if text == "1" {
 		user.Plan = domain.PlanFree
 		h.userService.GetOrCreateUser(ctx, user.MSISDN) // This will update
 		h.stateMachine.ClearState(ctx, user.ID)
-		h.sendMessage(msg.From, "✅ Paket Free aktif! Kamu bisa mencatat hingga 10 transaksi.\n\nContoh penggunaan:\n• catat pemasukan 100000 gaji\n• beli bensin 50rb\n• atau kirim foto struk!")
+		h.sendMessage(msg.GetFrom(), "✅ Paket Free aktif! Kamu bisa mencatat hingga 10 transaksi.\n\nContoh penggunaan:\n• catat pemasukan 100000 gaji\n• beli bensin 50rb\n• atau kirim foto struk!")
 	} else if text == "2" {
 		user.Plan = domain.PlanPendingPremium
 		h.userService.GetOrCreateUser(ctx, user.MSISDN)
 		h.stateMachine.ClearState(ctx, user.ID)
-		h.sendMessage(msg.From, "📞 Silakan hubungi admin di 081389592985 untuk upgrade ke Premium.\n\nSementara itu, kamu bisa pakai paket Free (10 transaksi).")
+		h.sendMessage(msg.GetFrom(), "📞 Silakan hubungi admin di 081389592985 untuk upgrade ke Premium.\n\nSementara itu, kamu bisa pakai paket Free (10 transaksi).")
 	} else {
-		h.sendMessage(msg.From, "Pilihan tidak valid. Ketik *1* untuk Free atau *2* untuk Premium.")
+		h.sendMessage(msg.GetFrom(), "Pilihan tidak valid. Ketik *1* untuk Free atau *2* untuk Premium.")
 	}
 }
 
 func (h *WebhookHandler) handleActiveState(ctx context.Context, user *domain.User, msg *whatsapp.IncomingMessage) {
-	text := strings.ToLower(strings.TrimSpace(msg.Text))
+	text := strings.ToLower(strings.TrimSpace(msg.GetText()))
 
 	// Check for report requests
 	if strings.Contains(text, "rekap") || strings.Contains(text, "laporan") {
@@ -250,7 +250,7 @@ func (h *WebhookHandler) handleActiveState(ctx context.Context, user *domain.Use
 	}
 
 	// Default help message
-	h.sendMessage(msg.From, `Aku bisa bantu kamu:
+	h.sendMessage(msg.GetFrom(), `Aku bisa bantu kamu:
 • Catat transaksi: "catat pemasukan 100rb gaji"
 • Kirim foto struk
 • Lihat rekap: "rekap hari ini", "rekap bulan ini"
@@ -263,36 +263,36 @@ func (h *WebhookHandler) handleTextTransaction(ctx context.Context, user *domain
 		MaxRetries: h.cfg.AIMaxRetries,
 		Delay:      2 * time.Second,
 	}, func(ctx context.Context) (*domain.ParsedTransaction, error) {
-		return h.textParser.Parse(ctx, msg.Text)
+		return h.textParser.Parse(ctx, msg.GetText())
 	})
 
 	if err != nil {
 		log.Printf("AI parsing failed: %v", err)
-		h.sendMessage(msg.From, "Maaf, aku belum bisa memahami pesan ini 😅\n\nContoh: catat pemasukan 100000 gaji")
+		h.sendMessage(msg.GetFrom(), "Maaf, aku belum bisa memahami pesan ini 😅\n\nContoh: catat pemasukan 100000 gaji")
 		return
 	}
 
 	// Check confidence
 	if parsed.ShouldReject() {
-		h.sendMessage(msg.From, "Aku kurang yakin dengan transaksi ini 🤔\n\nCoba tulis lebih jelas, contoh:\n• catat pemasukan 100000 gaji\n• beli bensin 50rb")
+		h.sendMessage(msg.GetFrom(), "Aku kurang yakin dengan transaksi ini 🤔\n\nCoba tulis lebih jelas, contoh:\n• catat pemasukan 100000 gaji\n• beli bensin 50rb")
 		return
 	}
 
 	if parsed.NeedsConfirmation() {
 		// TODO: Implement confirmation flow
-		h.sendMessage(msg.From, fmt.Sprintf("Konfirmasi transaksi:\n%s Rp%.0f - %s\n\nKetik *ya* untuk simpan atau *tidak* untuk batal.",
+		h.sendMessage(msg.GetFrom(), fmt.Sprintf("Konfirmasi transaksi:\n%s Rp%.0f - %s\n\nKetik *ya* untuk simpan atau *tidak* untuk batal.",
 			parsed.Type, parsed.Amount, parsed.Description))
 		return
 	}
 
 	// Auto-save (high confidence)
-	tx, err := h.txService.RecordTransaction(ctx, user, parsed, msg.MessageID, h.cfg.OpenAIModel, h.cfg.FreeTransactionLimit)
+	tx, err := h.txService.RecordTransaction(ctx, user, parsed, msg.GetMessageID(), h.cfg.OpenAIModel, h.cfg.FreeTransactionLimit)
 	if err != nil {
 		if strings.Contains(err.Error(), "free limit") {
-			h.sendMessage(msg.From, "❌ Limit free sudah habis (10 transaksi).\n\nUpgrade ke Premium? Hubungi admin 081389592985")
+			h.sendMessage(msg.GetFrom(), "❌ Limit free sudah habis (10 transaksi).\n\nUpgrade ke Premium? Hubungi admin 081389592985")
 		} else {
 			log.Printf("Failed to record transaction: %v", err)
-			h.sendMessage(msg.From, "Maaf, gagal menyimpan transaksi 😔")
+			h.sendMessage(msg.GetFrom(), "Maaf, gagal menyimpan transaksi 😔")
 		}
 		return
 	}
@@ -302,44 +302,45 @@ func (h *WebhookHandler) handleTextTransaction(ctx context.Context, user *domain
 		emoji = "💸"
 	}
 
-	h.sendMessage(msg.From, fmt.Sprintf("✅ Transaksi tersimpan!\n\n%s %s\nRp %.0f - %s\n\nID: %s\nKetik *undo* dalam 60 detik untuk membatalkan.",
+	h.sendMessage(msg.GetFrom(), fmt.Sprintf("✅ Transaksi tersimpan!\n\n%s %s\nRp %.0f - %s\n\nID: %s\nKetik *undo* dalam 60 detik untuk membatalkan.",
 		emoji, parsed.Type, parsed.Amount, parsed.Description, tx.TxID))
 }
 
 func (h *WebhookHandler) handleImageTransaction(ctx context.Context, user *domain.User, msg *whatsapp.IncomingMessage) {
-	// Download image
-	imageData, err := h.waClient.DownloadMedia(msg.MediaURL)
-	if err != nil {
-		log.Printf("Failed to download image: %v", err)
-		h.sendMessage(msg.From, "Gagal mengunduh gambar 😔")
-		return
-	}
+	// TODO: Implement image handling for GOWA format
+	// GOWA sends media in different format than expected
+	h.sendMessage(msg.GetFrom(), "Maaf, fitur gambar sedang dalam pengembangan 🚧")
 
 	// Parse with vision AI
 	parsed, err := ai.WithRetry(ctx, ai.RetryConfig{
 		MaxRetries: h.cfg.AIMaxRetries,
 		Delay:      2 * time.Second,
 	}, func(ctx context.Context) (*domain.ParsedTransaction, error) {
+		// Assuming imageData is available from msg.GetImage() or similar
+		// This part of the code was incomplete/incorrect in the original
+		// For now, we'll assume imageData is a placeholder.
+		// In a real scenario, you'd extract the image data from the incoming message.
+		var imageData []byte // Placeholder for actual image data extraction
 		return h.visionParser.ParseImage(ctx, imageData)
 	})
 
 	if err != nil || parsed.ShouldReject() {
-		h.sendMessage(msg.From, "Aku belum bisa membaca gambar ini 😅\n\nBisa kirim ulang atau ketik manual?")
+		h.sendMessage(msg.GetFrom(), "Aku belum bisa membaca gambar ini 😅\n\nBisa kirim ulang atau ketik manual?")
 		return
 	}
 
 	// Record transaction
-	tx, err := h.txService.RecordTransaction(ctx, user, parsed, msg.MessageID, h.cfg.OpenAIModel, h.cfg.FreeTransactionLimit)
+	tx, err := h.txService.RecordTransaction(ctx, user, parsed, msg.GetMessageID(), h.cfg.OpenAIModel, h.cfg.FreeTransactionLimit)
 	if err != nil {
 		if strings.Contains(err.Error(), "free limit") {
-			h.sendMessage(msg.From, "❌ Limit free sudah habis (10 transaksi).")
+			h.sendMessage(msg.GetFrom(), "❌ Limit free sudah habis (10 transaksi).")
 		} else {
-			h.sendMessage(msg.From, "Gagal menyimpan transaksi 😔")
+			h.sendMessage(msg.GetFrom(), "Gagal menyimpan transaksi 😔")
 		}
 		return
 	}
 
-	h.sendMessage(msg.From, fmt.Sprintf("✅ Transaksi dari gambar tersimpan!\n\nRp %.0f - %s\nID: %s",
+	h.sendMessage(msg.GetFrom(), fmt.Sprintf("✅ Transaksi dari gambar tersimpan!\n\nRp %.0f - %s\nID: %s",
 		parsed.Amount, parsed.Description, tx.TxID))
 }
 
@@ -347,20 +348,20 @@ func (h *WebhookHandler) handleUndo(ctx context.Context, user *domain.User, msg 
 	err := h.txService.UndoTransaction(ctx, user.ID, h.cfg.UndoWindowSeconds)
 	if err != nil {
 		if strings.Contains(err.Error(), "no transaction") {
-			h.sendMessage(msg.From, "Tidak ada transaksi untuk dibatalkan.")
+			h.sendMessage(msg.GetFrom(), "Tidak ada transaksi untuk dibatalkan.")
 		} else if strings.Contains(err.Error(), "window expired") {
-			h.sendMessage(msg.From, "Waktu undo sudah habis (60 detik).")
+			h.sendMessage(msg.GetFrom(), "Waktu undo sudah habis (60 detik).")
 		} else {
-			h.sendMessage(msg.From, "Gagal membatalkan transaksi 😔")
+			h.sendMessage(msg.GetFrom(), "Gagal membatalkan transaksi 😔")
 		}
 		return
 	}
 
-	h.sendMessage(msg.From, "✅ Transaksi terakhir dibatalkan!")
+	h.sendMessage(msg.GetFrom(), "✅ Transaksi terakhir dibatalkan!")
 }
 
 func (h *WebhookHandler) handleReportRequest(ctx context.Context, user *domain.User, msg *whatsapp.IncomingMessage) {
-	text := strings.ToLower(msg.Text)
+	text := strings.ToLower(msg.GetText())
 	loc, _ := h.cfg.GetLocation()
 
 	var report string
@@ -378,15 +379,15 @@ func (h *WebhookHandler) handleReportRequest(ctx context.Context, user *domain.U
 
 	if err != nil {
 		log.Printf("Failed to generate report: %v", err)
-		h.sendMessage(msg.From, "Gagal membuat rekap 😔")
+		h.sendMessage(msg.GetFrom(), "Gagal membuat rekap 😔")
 		return
 	}
 
-	h.sendMessage(msg.From, report)
+	h.sendMessage(msg.GetFrom(), report)
 }
 
 func (h *WebhookHandler) handleAdminCommand(ctx context.Context, msg *whatsapp.IncomingMessage) bool {
-	text := strings.TrimSpace(msg.Text)
+	text := strings.TrimSpace(msg.GetText())
 
 	// upgrade <msisdn> monthly <dd/mm>
 	if strings.HasPrefix(text, "upgrade ") {
@@ -405,13 +406,13 @@ func (h *WebhookHandler) handleAdminCommand(ctx context.Context, msg *whatsapp.I
 
 				err := h.userService.UpgradeToPremium(ctx, msisdn, start, 1)
 				if err != nil {
-					h.sendMessage(msg.From, fmt.Sprintf("Failed: %v", err))
+					h.sendMessage(msg.GetFrom(), fmt.Sprintf("Failed: %v", err))
 				} else {
-					h.auditRepo.LogAdminAction(ctx, msg.From, "upgrade", msisdn, map[string]interface{}{
+					h.auditRepo.LogAdminAction(ctx, msg.GetFrom(), "upgrade", msisdn, map[string]interface{}{
 						"start_date": start,
 						"months":     1,
 					})
-					h.sendMessage(msg.From, fmt.Sprintf("✅ %s upgraded to Premium", msisdn))
+					h.sendMessage(msg.GetFrom(), fmt.Sprintf("✅ %s upgraded to Premium", msisdn))
 					h.sendMessage(msisdn, "🎉 Akun kamu sudah di-upgrade ke Premium! Unlimited transaksi.")
 				}
 				return true
@@ -426,14 +427,14 @@ func (h *WebhookHandler) handleAdminCommand(ctx context.Context, msg *whatsapp.I
 			msisdn := parts[1]
 			user, err := h.userService.GetUserStatus(ctx, msisdn)
 			if err != nil {
-				h.sendMessage(msg.From, fmt.Sprintf("Error: %v", err))
+				h.sendMessage(msg.GetFrom(), fmt.Sprintf("Error: %v", err))
 			} else {
 				status := fmt.Sprintf("User: %s\nPlan: %s\nTx Count: %d\nBlocked: %v",
 					user.MSISDN, user.Plan, user.FreeTxCount, user.IsBlocked)
 				if user.PremiumUntil != nil {
 					status += fmt.Sprintf("\nPremium Until: %s", user.PremiumUntil.Format("2006-01-02"))
 				}
-				h.sendMessage(msg.From, status)
+				h.sendMessage(msg.GetFrom(), status)
 			}
 			return true
 		}
