@@ -99,3 +99,41 @@ func (h *AdminHandler) UnblockUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"status": "success"})
 }
+
+func (h *AdminHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		MSISDN string `json:"msisdn"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.userService.DeleteUser(context.Background(), req.MSISDN); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"status": "success"})
+}
+
+func (h *AdminHandler) DowngradePremium(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		MSISDN string `json:"msisdn"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.userService.DowngradePremium(context.Background(), req.MSISDN); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"status": "success"})
+}

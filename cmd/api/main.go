@@ -92,6 +92,8 @@ func main() {
 	http.HandleFunc("/api/admin/upgrade", adminHandler.UpgradeUser)
 	http.HandleFunc("/api/admin/block", adminHandler.BlockUser)
 	http.HandleFunc("/api/admin/unblock", adminHandler.UnblockUser)
+	http.HandleFunc("/api/admin/delete", adminHandler.DeleteUser)
+	http.HandleFunc("/api/admin/downgrade", adminHandler.DowngradePremium)
 
 	// Serve admin panel
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {

@@ -133,3 +133,24 @@ func (s *UserService) GetUserStatus(ctx context.Context, msisdn string) (*domain
 func (s *UserService) GetAllUsers(ctx context.Context) ([]*domain.User, error) {
 	return s.userRepo.GetAll(ctx)
 }
+
+func (s *UserService) DeleteUser(ctx context.Context, msisdn string) error {
+	user, err := s.userRepo.GetByMSISDN(ctx, msisdn)
+	if err != nil {
+		return fmt.Errorf("failed to get user: %w", err)
+	}
+	if user == nil {
+		return fmt.Errorf("user not found")
+	}
+
+	if err := s.userRepo.Delete(ctx, user.ID); err != nil {
+		return fmt.Errorf("failed to delete user: %w", err)
+	}
+
+	return nil
+}
+
+func (s *UserService) DowngradePremium(ctx context.Context, msisdn string) error {
+	// Same as DowngradeToFree but with better naming for admin panel
+	return s.DowngradeToFree(ctx, msisdn)
+}

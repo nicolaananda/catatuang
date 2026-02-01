@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,71 +11,71 @@
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
         }
-        
+
         .container {
             max-width: 1200px;
             margin: 0 auto;
         }
-        
+
         .header {
             background: white;
             padding: 30px;
             border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             margin-bottom: 20px;
         }
-        
+
         h1 {
             color: #333;
             margin-bottom: 10px;
         }
-        
+
         .stats {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 15px;
             margin-bottom: 20px;
         }
-        
+
         .stat-card {
             background: white;
             padding: 20px;
             border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
-        
+
         .stat-card h3 {
             color: #667eea;
             font-size: 14px;
             margin-bottom: 10px;
         }
-        
+
         .stat-card .value {
             font-size: 32px;
             font-weight: bold;
             color: #333;
         }
-        
+
         .users-table {
             background: white;
             padding: 20px;
             border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             overflow-x: auto;
         }
-        
+
         table {
             width: 100%;
             border-collapse: collapse;
         }
-        
+
         th {
             background: #f7fafc;
             padding: 12px;
@@ -83,16 +84,16 @@
             color: #4a5568;
             border-bottom: 2px solid #e2e8f0;
         }
-        
+
         td {
             padding: 12px;
             border-bottom: 1px solid #e2e8f0;
         }
-        
+
         tr:hover {
             background: #f7fafc;
         }
-        
+
         .badge {
             display: inline-block;
             padding: 4px 12px;
@@ -100,22 +101,22 @@
             font-size: 12px;
             font-weight: 600;
         }
-        
+
         .badge-free {
             background: #e2e8f0;
             color: #4a5568;
         }
-        
+
         .badge-premium {
             background: #fbbf24;
             color: #78350f;
         }
-        
+
         .badge-blocked {
             background: #ef4444;
             color: white;
         }
-        
+
         .actions button {
             padding: 6px 12px;
             margin-right: 5px;
@@ -125,34 +126,45 @@
             font-size: 12px;
             font-weight: 600;
         }
-        
+
         .btn-upgrade {
             background: #10b981;
             color: white;
         }
-        
+
         .btn-block {
             background: #ef4444;
             color: white;
         }
-        
+
         .btn-view {
             background: #667eea;
             color: white;
         }
-        
+
+        .btn-delete {
+            background: #dc2626;
+            color: white;
+        }
+
+        .btn-downgrade {
+            background: #f59e0b;
+            color: white;
+        }
+
         button:hover {
             opacity: 0.9;
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <div class="header">
             <h1>📒 Catatuang Admin Panel</h1>
             <p>Manage users and monitor system</p>
         </div>
-        
+
         <div class="stats">
             <div class="stat-card">
                 <h3>Total Users</h3>
@@ -171,7 +183,7 @@
                 <div class="value" id="blockedUsers">0</div>
             </div>
         </div>
-        
+
         <div class="users-table">
             <h2 style="margin-bottom: 20px;">Users</h2>
             <table>
@@ -193,19 +205,19 @@
             </table>
         </div>
     </div>
-    
+
     <script>
         async function loadUsers() {
             try {
                 const response = await fetch('/api/admin/users');
                 const users = await response.json();
-                
+
                 // Update stats
                 document.getElementById('totalUsers').textContent = users.length;
                 document.getElementById('premiumUsers').textContent = users.filter(u => u.plan === 'PREMIUM').length;
                 document.getElementById('freeUsers').textContent = users.filter(u => u.plan === 'FREE').length;
                 document.getElementById('blockedUsers').textContent = users.filter(u => u.is_blocked).length;
-                
+
                 // Update table
                 const tbody = document.getElementById('usersTableBody');
                 tbody.innerHTML = users.map(user => `
@@ -217,8 +229,9 @@
                         <td>${user.is_blocked ? '<span class="badge badge-blocked">Blocked</span>' : 'Active'}</td>
                         <td class="actions">
                             <button class="btn-view" onclick="viewUser('${user.msisdn}')">View</button>
-                            ${user.plan !== 'PREMIUM' ? `<button class="btn-upgrade" onclick="upgradeUser('${user.msisdn}')">Upgrade</button>` : ''}
+                            ${user.plan !== 'PREMIUM' ? `<button class="btn-upgrade" onclick="upgradeUser('${user.msisdn}')">Upgrade</button>` : `<button class="btn-downgrade" onclick="downgradePremium('${user.msisdn}')">Downgrade</button>`}
                             <button class="btn-block" onclick="toggleBlock('${user.msisdn}', ${user.is_blocked})">${user.is_blocked ? 'Unblock' : 'Block'}</button>
+                            <button class="btn-delete" onclick="deleteUser('${user.msisdn}')">Delete</button>
                         </td>
                     </tr>
                 `).join('');
@@ -226,21 +239,21 @@
                 console.error('Failed to load users:', error);
             }
         }
-        
+
         function viewUser(msisdn) {
             alert('View user: ' + msisdn);
             // TODO: Implement user detail view
         }
-        
+
         async function upgradeUser(msisdn) {
             const startDate = prompt('Enter start date (DD/MM):');
             if (!startDate) return;
-            
+
             try {
                 await fetch('/api/admin/upgrade', {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({msisdn, start_date: startDate})
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ msisdn, start_date: startDate })
                 });
                 alert('User upgraded successfully!');
                 loadUsers();
@@ -248,16 +261,16 @@
                 alert('Failed to upgrade user');
             }
         }
-        
+
         async function toggleBlock(msisdn, isBlocked) {
             const action = isBlocked ? 'unblock' : 'block';
             if (!confirm(`Are you sure you want to ${action} ${msisdn}?`)) return;
-            
+
             try {
                 await fetch(`/api/admin/${action}`, {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({msisdn})
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ msisdn })
                 });
                 alert(`User ${action}ed successfully!`);
                 loadUsers();
@@ -265,12 +278,44 @@
                 alert(`Failed to ${action} user`);
             }
         }
-        
+
+        async function deleteUser(msisdn) {
+            if (!confirm(`⚠️ Are you sure you want to DELETE ${msisdn}?\n\nThis will remove:\n- User account\n- All transactions\n- All conversation history\n\nThis action CANNOT be undone!`)) return;
+
+            try {
+                await fetch('/api/admin/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ msisdn })
+                });
+                alert('User deleted successfully! They will get onboarding when they chat again.');
+                loadUsers();
+            } catch (error) {
+                alert('Failed to delete user');
+            }
+        }
+
+        async function downgradePremium(msisdn) {
+            if (!confirm(`Downgrade ${msisdn} to FREE plan?`)) return;
+
+            try {
+                await fetch('/api/admin/downgrade', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ msisdn })
+                });
+                alert('User downgraded to FREE plan successfully!');
+                loadUsers();
+            } catch (error) {
+                alert('Failed to downgrade user');
+            }
+        }
         // Load users on page load
         loadUsers();
-        
+
         // Refresh every 30 seconds
         setInterval(loadUsers, 30000);
     </script>
 </body>
+
 </html>

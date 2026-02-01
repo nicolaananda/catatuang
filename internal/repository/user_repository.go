@@ -130,3 +130,25 @@ func (r *UserRepository) GetAll(ctx context.Context) ([]*domain.User, error) {
 
 	return users, nil
 }
+
+func (r *UserRepository) Delete(ctx context.Context, userID int64) error {
+	// Delete user and all related data (transactions, conversation states, etc.)
+	// Using CASCADE in database schema, so just delete the user
+	query := `DELETE FROM users WHERE id = $1`
+
+	result, err := r.db.ExecContext(ctx, query, userID)
+	if err != nil {
+		return fmt.Errorf("failed to delete user: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("user not found")
+	}
+
+	return nil
+}
