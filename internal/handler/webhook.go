@@ -453,6 +453,11 @@ func (h *WebhookHandler) handleAdminCommand(ctx context.Context, msg *whatsapp.I
 }
 
 func (h *WebhookHandler) sendMessage(to, message string) {
+	// Skip if phone number is empty (happens with ack events)
+	if to == "" {
+		return
+	}
+
 	if err := h.waClient.SendMessage(to, message); err != nil {
 		log.Printf("Failed to send message to %s: %v", to, err)
 	}

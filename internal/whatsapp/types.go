@@ -29,10 +29,24 @@ func (m *IncomingMessage) GetMessageID() string {
 func (m *IncomingMessage) GetFrom() string {
 	// Ensure phone number has @s.whatsapp.net suffix for sending messages
 	phone := m.SenderID
-	if !strings.Contains(phone, "@") {
-		return phone + "@s.whatsapp.net"
+
+	// Skip if empty
+	if phone == "" {
+		return ""
 	}
-	return phone
+
+	// If already has @ suffix, return as is
+	if strings.Contains(phone, "@") {
+		// For LID format (e.g., "88270922903758@lid"), convert to standard format
+		if strings.HasSuffix(phone, "@lid") {
+			phone = strings.TrimSuffix(phone, "@lid")
+			return phone + "@s.whatsapp.net"
+		}
+		return phone
+	}
+
+	// Add standard WhatsApp suffix
+	return phone + "@s.whatsapp.net"
 }
 
 // GetText returns the message text

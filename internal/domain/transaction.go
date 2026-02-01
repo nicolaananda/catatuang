@@ -29,7 +29,9 @@ type Transaction struct {
 	UpdatedAt       time.Time `json:"updated_at"`
 }
 
-// GenerateTxID generates a transaction ID
+// GenerateTxID generates a unique transaction ID with timestamp
 func GenerateTxID(id int64) string {
-	return fmt.Sprintf("TX#%d", id)
+	// Include timestamp to ensure uniqueness even if ID is reused
+	timestamp := time.Now().Unix()
+	return fmt.Sprintf("TX#%d-%d", id, timestamp)
 }
