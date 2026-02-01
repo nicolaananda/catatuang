@@ -31,15 +31,20 @@ func (p *TextParser) Parse(ctx context.Context, message string) (*domain.ParsedT
 	// Normalize Indonesian slang
 	normalized := p.normalizeAmount(message)
 
-	systemPrompt := `You are a financial transaction parser for Indonesian users.
+	// Get current date in user's timezone
+	today := time.Now().In(p.timezone).Format("2006-01-02")
+
+	systemPrompt := fmt.Sprintf(`You are a financial transaction parser for Indonesian users.
 Parse the message into a structured transaction.
+
+IMPORTANT: Today's date is %s. Use this as the default date if no date is mentioned.
 
 Rules:
 1. Determine if it's INCOME or EXPENSE
 2. Extract the amount (handle "rb" = ribu/1000, "jt" = juta/1000000)
 3. Identify category (e.g., "gaji", "makan", "transport", "belanja")
 4. Extract description
-5. Parse date if mentioned, otherwise use today
+5. Parse date if mentioned, otherwise use TODAY (%s)
 6. Provide confidence score (0.0-1.0)
 
 Return ONLY valid JSON in this exact format:
@@ -53,9 +58,9 @@ Return ONLY valid JSON in this exact format:
 }
 
 Examples:
-- "catat pemasukan 10000 gaji" → INCOME, 10000, "gaji", "gaji", today, 0.95
-- "beli bensin 50rb" → EXPENSE, 50000, "transport", "beli bensin", today, 0.9
-- "dapat uang dari jual motor 20 juta" → INCOME, 20000000, "penjualan", "jual motor", today, 0.85`
+- "catat pemasukan 10000 gaji" → INCOME, 10000, "gaji", "gaji", %s, 0.95
+- "beli bensin 50rb" → EXPENSE, 50000, "transport", "beli bensin", %s, 0.9
+- "dapat uang dari jual motor 20 juta" → INCOME, 20000000, "penjualan", "jual motor", %s, 0.85`, today, today, today, today, today)
 
 	resp, err := p.client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
 		Model: p.model,
