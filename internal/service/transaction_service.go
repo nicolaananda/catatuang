@@ -58,16 +58,11 @@ func (s *TransactionService) RecordTransaction(ctx context.Context, user *domain
 		AIVersion:       aiVersion,
 	}
 
+	// Generate TX ID BEFORE insert to prevent race conditions
+	tx.TxID = domain.GenerateTxID(waMessageID)
+
 	if err := s.txRepo.Create(ctx, tx); err != nil {
 		return nil, fmt.Errorf("failed to create transaction: %w", err)
-	}
-
-	// Generate TX ID
-	tx.TxID = domain.GenerateTxID(tx.ID)
-
-	// Update TX ID
-	if err := s.txRepo.Update(ctx, tx); err != nil {
-		return nil, fmt.Errorf("failed to update tx_id: %w", err)
 	}
 
 	// Increment user's free transaction count if not premium

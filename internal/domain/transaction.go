@@ -29,9 +29,17 @@ type Transaction struct {
 	UpdatedAt       time.Time `json:"updated_at"`
 }
 
-// GenerateTxID generates a unique transaction ID with timestamp
-func GenerateTxID(id int64) string {
-	// Include timestamp to ensure uniqueness even if ID is reused
+// GenerateTxID generates a unique transaction ID using WA message ID
+// This prevents race conditions since WA message ID is unique before DB insert
+func GenerateTxID(waMessageID string) string {
+	// Use last 8 chars of WA message ID + timestamp for uniqueness
 	timestamp := time.Now().Unix()
-	return fmt.Sprintf("TX#%d-%d", id, timestamp)
+
+	// Extract last 8 chars of WA message ID for readability
+	suffix := waMessageID
+	if len(waMessageID) > 8 {
+		suffix = waMessageID[len(waMessageID)-8:]
+	}
+
+	return fmt.Sprintf("TX#%s-%d", suffix, timestamp)
 }
