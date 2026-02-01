@@ -50,8 +50,8 @@ func (c *Client) SendMessage(to, message string) error {
 		return fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	// GOWA endpoint is /send/text with device_id query parameter
-	url := fmt.Sprintf("%s/send/text?device_id=%s", c.apiURL, c.deviceID)
+	// GOWA endpoint is /send/message with device_id query parameter
+	url := fmt.Sprintf("%s/send/message?device_id=%s", c.apiURL, c.deviceID)
 	httpReq, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
