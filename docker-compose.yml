@@ -32,8 +32,8 @@ services:
       - POSTGRES_PASSWORD=catatuang123
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+    # Port 5432 not exposed to avoid conflicts with other PostgreSQL instances
+    # App container connects via Docker network, not localhost
 
 volumes:
   postgres_data:
