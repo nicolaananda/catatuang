@@ -38,6 +38,10 @@ func (m *IncomingMessage) GetFrom() string {
 		parts := strings.Split(m.From, "@")
 		if len(parts) > 0 {
 			phone := parts[0]
+			// Remove device part if present (e.g., "6281389592985:40" -> "6281389592985")
+			if colonIdx := strings.Index(phone, ":"); colonIdx > 0 {
+				phone = phone[:colonIdx]
+			}
 			// Return with @s.whatsapp.net suffix
 			return phone + "@s.whatsapp.net"
 		}
@@ -45,6 +49,11 @@ func (m *IncomingMessage) GetFrom() string {
 
 	// Fallback to sender_id
 	phone := m.SenderID
+
+	// Remove device part if present
+	if colonIdx := strings.Index(phone, ":"); colonIdx > 0 {
+		phone = phone[:colonIdx]
+	}
 
 	// Skip if empty
 	if phone == "" {
@@ -63,6 +72,19 @@ func (m *IncomingMessage) GetFrom() string {
 
 	// Add standard WhatsApp suffix
 	return phone + "@s.whatsapp.net"
+}
+
+// GetMSISDN returns just the phone number without WhatsApp suffix (for database storage)
+func (m *IncomingMessage) GetMSISDN() string {
+	// Get the full JID first
+	fullJID := m.GetFrom()
+
+	// Extract just the phone number part (before @)
+	if idx := strings.Index(fullJID, "@"); idx > 0 {
+		return fullJID[:idx]
+	}
+
+	return fullJID
 }
 
 // GetText returns the message text

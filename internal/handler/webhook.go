@@ -153,8 +153,8 @@ func (h *WebhookHandler) processMessage(ctx context.Context, msg *whatsapp.Incom
 		return
 	}
 
-	// Get or create user
-	user, isNew, err := h.userService.GetOrCreateUser(ctx, msg.GetFrom())
+	// Get or create user (use MSISDN without @s.whatsapp.net suffix)
+	user, isNew, err := h.userService.GetOrCreateUser(ctx, msg.GetMSISDN())
 	if err != nil {
 		log.Printf("Failed to get/create user: %v", err)
 		h.sendMessage(msg.GetFrom(), "Maaf, terjadi kesalahan sistem 😔")
