@@ -2,7 +2,10 @@ package handler
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -69,32 +72,41 @@ func (h *WebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Verify webhook secret
-	// GOWA may send secret in different headers, check all possibilities
-	secret := r.Header.Get("X-Webhook-Secret")
-	if secret == "" {
-		secret = r.Header.Get("X-Api-Key")
-	}
-	if secret == "" {
-		secret = r.Header.Get("Authorization")
-		// Remove "Bearer " prefix if present
-		if strings.HasPrefix(secret, "Bearer ") {
-			secret = strings.TrimPrefix(secret, "Bearer ")
-		}
-	}
-
-	// If still empty or doesn't match, log headers for debugging
-	if secret != h.cfg.GowaWebhookSecret {
-		log.Printf("Webhook auth failed. Expected: %s, Got: %s", h.cfg.GowaWebhookSecret, secret)
-		log.Printf("Headers: %v", r.Header)
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
-		return
-	}
-
+	// Read body first (needed for signature verification)
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, "Failed to read body", http.StatusBadRequest)
 		return
+	}
+
+	// Verify webhook signature
+	// GOWA uses X-Hub-Signature-256 header with HMAC SHA256
+	signature := r.Header.Get("X-Hub-Signature-256")
+	if signature != "" {
+		// Verify HMAC signature
+		if !verifyHMACSignature(body, signature, h.cfg.GowaWebhookSecret) {
+			log.Printf("Webhook HMAC signature verification failed")
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+	} else {
+		// Fallback: check for simple secret headers
+		secret := r.Header.Get("X-Webhook-Secret")
+		if secret == "" {
+			secret = r.Header.Get("X-Api-Key")
+		}
+		if secret == "" {
+			secret = r.Header.Get("Authorization")
+			if strings.HasPrefix(secret, "Bearer ") {
+				secret = strings.TrimPrefix(secret, "Bearer ")
+			}
+		}
+
+		if secret != h.cfg.GowaWebhookSecret {
+			log.Printf("Webhook auth failed. Expected: %s, Got: %s", h.cfg.GowaWebhookSecret, secret)
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
 	}
 
 	var msg whatsapp.IncomingMessage
@@ -430,4 +442,22 @@ func (h *WebhookHandler) sendMessage(to, message string) {
 	if err := h.waClient.SendMessage(to, message); err != nil {
 		log.Printf("Failed to send message to %s: %v", to, err)
 	}
+}
+
+// verifyHMACSignature verifies the X-Hub-Signature-256 header from GOWA webhook
+func verifyHMACSignature(payload []byte, signatureHeader, secret string) bool {
+	// signatureHeader format: "sha256=<hex_signature>"
+	if !strings.HasPrefix(signatureHeader, "sha256=") {
+		return false
+	}
+
+	expectedSignature := strings.TrimPrefix(signatureHeader, "sha256=")
+
+	// Compute HMAC SHA256
+	mac := hmac.New(sha256.New, []byte(secret))
+	mac.Write(payload)
+	computedSignature := hex.EncodeToString(mac.Sum(nil))
+
+	// Compare signatures (constant time to prevent timing attacks)
+	return hmac.Equal([]byte(computedSignature), []byte(expectedSignature))
 }
