@@ -70,8 +70,23 @@ func (h *WebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Verify webhook secret
+	// GOWA may send secret in different headers, check all possibilities
 	secret := r.Header.Get("X-Webhook-Secret")
+	if secret == "" {
+		secret = r.Header.Get("X-Api-Key")
+	}
+	if secret == "" {
+		secret = r.Header.Get("Authorization")
+		// Remove "Bearer " prefix if present
+		if strings.HasPrefix(secret, "Bearer ") {
+			secret = strings.TrimPrefix(secret, "Bearer ")
+		}
+	}
+
+	// If still empty or doesn't match, log headers for debugging
 	if secret != h.cfg.GowaWebhookSecret {
+		log.Printf("Webhook auth failed. Expected: %s, Got: %s", h.cfg.GowaWebhookSecret, secret)
+		log.Printf("Headers: %v", r.Header)
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
