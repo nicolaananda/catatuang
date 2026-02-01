@@ -119,6 +119,15 @@ func (h *WebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Filter: only process actual messages, ignore acks and other events
+	// GOWA sends different event types, we only want chat messages
+	if msg.Message.ID == "" || msg.SenderID == "" {
+		// This is likely an ack or other event, not a message
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
+		return
+	}
+
 	// Process message asynchronously
 	go h.processMessage(context.Background(), &msg)
 

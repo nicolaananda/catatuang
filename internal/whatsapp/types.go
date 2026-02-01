@@ -1,5 +1,9 @@
 package whatsapp
 
+import (
+	"strings"
+)
+
 // IncomingMessage represents a webhook message from GOWA
 type IncomingMessage struct {
 	ChatID    string      `json:"chat_id"`
@@ -23,9 +27,14 @@ func (m *IncomingMessage) GetMessageID() string {
 	return m.Message.ID
 }
 
-// GetFrom returns the sender ID (phone number)
+// GetFrom returns the sender ID (phone number with WhatsApp suffix)
 func (m *IncomingMessage) GetFrom() string {
-	return m.SenderID
+	// Ensure phone number has @s.whatsapp.net suffix for sending messages
+	phone := m.SenderID
+	if !strings.Contains(phone, "@") {
+		return phone + "@s.whatsapp.net"
+	}
+	return phone
 }
 
 // GetText returns the message text
