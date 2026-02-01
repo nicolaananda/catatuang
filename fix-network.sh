@@ -19,7 +19,7 @@ docker network rm catatuang_default 2>/dev/null || echo "Network already removed
 
 # Step 3: Start containers with fresh network
 echo "3️⃣ Starting containers with fresh network..."
-docker-compose up -d --force-recreate
+docker compose up -d --force-recreate
 
 # Step 4: Wait for postgres to be ready
 echo "4️⃣ Waiting for PostgreSQL..."
