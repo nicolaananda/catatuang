@@ -78,7 +78,7 @@ func main() {
 	)
 
 	// Initialize admin handler
-	adminHandler := handler.NewAdminHandler(userService)
+	adminHandler := handler.NewAdminHandler(userService, txService)
 
 	// Setup HTTP server
 	http.Handle("/webhook", webhookHandler)
@@ -94,6 +94,7 @@ func main() {
 	http.HandleFunc("/api/admin/unblock", adminHandler.UnblockUser)
 	http.HandleFunc("/api/admin/delete", adminHandler.DeleteUser)
 	http.HandleFunc("/api/admin/downgrade", adminHandler.DowngradePremium)
+	http.HandleFunc("/api/admin/transactions", adminHandler.GetUserTransactions)
 
 	// Serve admin panel
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {

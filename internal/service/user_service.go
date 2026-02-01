@@ -154,3 +154,7 @@ func (s *UserService) DowngradePremium(ctx context.Context, msisdn string) error
 	// Same as DowngradeToFree but with better naming for admin panel
 	return s.DowngradeToFree(ctx, msisdn)
 }
+
+func (s *UserService) GetUserByMSISDN(ctx context.Context, msisdn string) (*domain.User, error) {
+	return s.userRepo.GetByMSISDN(ctx, msisdn)
+}

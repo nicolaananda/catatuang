@@ -13,10 +13,14 @@ import (
 
 type AdminHandler struct {
 	userService *service.UserService
+	txService   *service.TransactionService
 }
 
-func NewAdminHandler(userService *service.UserService) *AdminHandler {
-	return &AdminHandler{userService: userService}
+func NewAdminHandler(userService *service.UserService, txService *service.TransactionService) *AdminHandler {
+	return &AdminHandler{
+		userService: userService,
+		txService:   txService,
+	}
 }
 
 func (h *AdminHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
@@ -136,4 +140,32 @@ func (h *AdminHandler) DowngradePremium(w http.ResponseWriter, r *http.Request) 
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"status": "success"})
+}
+
+func (h *AdminHandler) GetUserTransactions(w http.ResponseWriter, r *http.Request) {
+	msisdn := r.URL.Query().Get("msisdn")
+	if msisdn == "" {
+		http.Error(w, "msisdn required", http.StatusBadRequest)
+		return
+	}
+
+	// Get user
+	user, err := h.userService.GetUserByMSISDN(context.Background(), msisdn)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Get transactions for last 30 days
+	end := time.Now()
+	start := end.AddDate(0, 0, -30)
+
+	transactions, err := h.txService.GetTransactionsByDateRange(context.Background(), user.ID, start, end)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(transactions)
 }
