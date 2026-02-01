@@ -58,7 +58,20 @@ func (c *Client) SendMessage(to, message string) error {
 	}
 
 	httpReq.Header.Set("Content-Type", "application/json")
-	// GOWA doesn't use Authorization header - it's open API
+
+	// GOWA uses Basic Authentication
+	// apiToken should be in format "username:password"
+	if c.apiToken != "" {
+		// If apiToken contains ":", split it as username:password
+		// Otherwise use it as both username and password
+		if bytes.Contains([]byte(c.apiToken), []byte(":")) {
+			parts := bytes.SplitN([]byte(c.apiToken), []byte(":"), 2)
+			httpReq.SetBasicAuth(string(parts[0]), string(parts[1]))
+		} else {
+			// Use same value for both username and password
+			httpReq.SetBasicAuth(c.apiToken, c.apiToken)
+		}
+	}
 
 	resp, err := c.client.Do(httpReq)
 	if err != nil {
