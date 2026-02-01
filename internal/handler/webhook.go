@@ -109,8 +109,12 @@ func (h *WebhookHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Debug: log the payload to see what GOWA actually sends
+	log.Printf("Webhook payload: %s", string(body))
+
 	var msg whatsapp.IncomingMessage
 	if err := json.Unmarshal(body, &msg); err != nil {
+		log.Printf("Failed to unmarshal webhook payload: %v", err)
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}
