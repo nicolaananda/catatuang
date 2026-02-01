@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
+      - GOWA_WEBHOOK_SECRET=${GOWA_WEBHOOK_SECRET}
+      - GOWA_API_URL=${GOWA_API_URL}
+      - GOWA_API_TOKEN=${GOWA_API_TOKEN}
+      - PORT=8080
+      - ADMIN_MSISDN=${ADMIN_MSISDN:-081389592985}
+      - TIMEZONE=${TIMEZONE:-Asia/Jakarta}
+      - AI_TIMEOUT_SECONDS=${AI_TIMEOUT_SECONDS:-12}
+      - AI_MAX_RETRIES=${AI_MAX_RETRIES:-2}
+      - STATE_EXPIRY_MINUTES=${STATE_EXPIRY_MINUTES:-30}
+      - UNDO_WINDOW_SECONDS=${UNDO_WINDOW_SECONDS:-60}
+      - FREE_TRANSACTION_LIMIT=${FREE_TRANSACTION_LIMIT:-10}
+    restart: unless-stopped
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=catatuang
+      - POSTGRES_USER=catatuang
+      - POSTGRES_PASSWORD=catatuang123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  postgres_data:
