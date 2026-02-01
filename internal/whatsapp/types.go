@@ -1,8 +1,6 @@
 package whatsapp
 
-import (
-	"strings"
-)
+import "strings"
 
 // IncomingMessage represents a webhook message from GOWA
 type IncomingMessage struct {
