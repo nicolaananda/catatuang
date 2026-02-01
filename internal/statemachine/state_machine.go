@@ -28,11 +28,13 @@ func (sm *StateMachine) GetState(ctx context.Context, userID int64) (*domain.Con
 	`
 
 	state := &domain.ConversationState{}
+	var contextJSON sql.NullString
+
 	err := sm.db.QueryRowContext(ctx, query, userID).Scan(
 		&state.ID,
 		&state.UserID,
 		&state.State,
-		&state.Context,
+		&contextJSON,
 		&state.ExpiresAt,
 		&state.CreatedAt,
 	)
@@ -46,6 +48,11 @@ func (sm *StateMachine) GetState(ctx context.Context, userID int64) (*domain.Con
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get state: %w", err)
+	}
+
+	// Handle NULL context
+	if contextJSON.Valid {
+		state.Context = json.RawMessage(contextJSON.String)
 	}
 
 	return state, nil
