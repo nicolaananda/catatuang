@@ -24,7 +24,7 @@ docker compose up -d --force-recreate
 # Step 4: Wait for postgres to be ready
 echo "4️⃣ Waiting for PostgreSQL..."
 for i in {1..30}; do
-    if docker-compose exec -T postgres pg_isready -U catatuang &>/dev/null; then
+    if docker compose exec -T postgres pg_isready -U catatuang &>/dev/null; then
         echo "✅ PostgreSQL is ready"
         break
     fi
