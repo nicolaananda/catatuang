@@ -57,7 +57,7 @@ func main() {
 	visionParser := ai.NewVisionParser(cfg.OpenAIAPIKey, cfg.OpenAIModel, loc)
 
 	// Initialize WhatsApp client
-	waClient := whatsapp.NewClient(cfg.GowaAPIURL, cfg.GowaAPIToken)
+	waClient := whatsapp.NewClient(cfg.GowaAPIURL, cfg.GowaAPIToken, cfg.GowaDeviceID)
 
 	// Initialize state machine
 	stateMachine := statemachine.NewStateMachine(db)

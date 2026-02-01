@@ -11,13 +11,15 @@ import (
 type Client struct {
 	apiURL   string
 	apiToken string
+	deviceID string
 	client   *http.Client
 }
 
-func NewClient(apiURL, apiToken string) *Client {
+func NewClient(apiURL, apiToken, deviceID string) *Client {
 	return &Client{
 		apiURL:   apiURL,
 		apiToken: apiToken,
+		deviceID: deviceID,
 		client:   &http.Client{},
 	}
 }
@@ -48,8 +50,9 @@ func (c *Client) SendMessage(to, message string) error {
 		return fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	// GOWA endpoint is /send/text
-	httpReq, err := http.NewRequest("POST", c.apiURL+"/send/text", bytes.NewBuffer(body))
+	// GOWA endpoint is /send/text with device_id query parameter
+	url := fmt.Sprintf("%s/send/text?device_id=%s", c.apiURL, c.deviceID)
+	httpReq, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}

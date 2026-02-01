@@ -21,6 +21,7 @@ type Config struct {
 	GowaWebhookSecret string
 	GowaAPIURL        string
 	GowaAPIToken      string
+	GowaDeviceID      string
 
 	// Server
 	Port           string
@@ -30,12 +31,12 @@ type Config struct {
 	AdminMSISDN string
 
 	// App Settings
-	Timezone              string
-	AITimeoutSeconds      int
-	AIMaxRetries          int
-	StateExpiryMinutes    int
-	UndoWindowSeconds     int
-	FreeTransactionLimit  int
+	Timezone             string
+	AITimeoutSeconds     int
+	AIMaxRetries         int
+	StateExpiryMinutes   int
+	UndoWindowSeconds    int
+	FreeTransactionLimit int
 }
 
 func Load() (*Config, error) {
@@ -43,20 +44,21 @@ func Load() (*Config, error) {
 	_ = godotenv.Load()
 
 	cfg := &Config{
-		DatabaseURL:       getEnv("DATABASE_URL", ""),
-		OpenAIAPIKey:      getEnv("OPENAI_API_KEY", ""),
-		OpenAIModel:       getEnv("OPENAI_MODEL", "gpt-4o-mini"),
-		GowaWebhookSecret: getEnv("GOWA_WEBHOOK_SECRET", ""),
-		GowaAPIURL:        getEnv("GOWA_API_URL", ""),
-		GowaAPIToken:      getEnv("GOWA_API_TOKEN", ""),
-		Port:              getEnv("PORT", "8080"),
-		AdminPanelPort:    getEnv("ADMIN_PANEL_PORT", "8081"),
-		AdminMSISDN:       getEnv("ADMIN_MSISDN", "081389592985"),
-		Timezone:          getEnv("TIMEZONE", "Asia/Jakarta"),
-		AITimeoutSeconds:  getEnvInt("AI_TIMEOUT_SECONDS", 12),
-		AIMaxRetries:      getEnvInt("AI_MAX_RETRIES", 2),
-		StateExpiryMinutes: getEnvInt("STATE_EXPIRY_MINUTES", 30),
-		UndoWindowSeconds: getEnvInt("UNDO_WINDOW_SECONDS", 60),
+		DatabaseURL:          getEnv("DATABASE_URL", ""),
+		OpenAIAPIKey:         getEnv("OPENAI_API_KEY", ""),
+		OpenAIModel:          getEnv("OPENAI_MODEL", "gpt-4o-mini"),
+		GowaWebhookSecret:    getEnv("GOWA_WEBHOOK_SECRET", ""),
+		GowaAPIURL:           getEnv("GOWA_API_URL", ""),
+		GowaAPIToken:         getEnv("GOWA_API_TOKEN", ""),
+		GowaDeviceID:         getEnv("GOWA_DEVICE_ID", "default"),
+		Port:                 getEnv("PORT", "8080"),
+		AdminPanelPort:       getEnv("ADMIN_PANEL_PORT", "8081"),
+		AdminMSISDN:          getEnv("ADMIN_MSISDN", "081389592985"),
+		Timezone:             getEnv("TIMEZONE", "Asia/Jakarta"),
+		AITimeoutSeconds:     getEnvInt("AI_TIMEOUT_SECONDS", 12),
+		AIMaxRetries:         getEnvInt("AI_MAX_RETRIES", 2),
+		StateExpiryMinutes:   getEnvInt("STATE_EXPIRY_MINUTES", 30),
+		UndoWindowSeconds:    getEnvInt("UNDO_WINDOW_SECONDS", 60),
 		FreeTransactionLimit: getEnvInt("FREE_TRANSACTION_LIMIT", 10),
 	}
 
